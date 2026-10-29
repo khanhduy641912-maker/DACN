@@ -1,91 +1,42 @@
 -- =========================================================
 -- ĐỀ ÁN: HỆ THỐNG QUẢN LÝ ĐĂNG KÝ MÔN HỌC
 -- CƠ SỞ DỮ LIỆU: PostgreSQL
+-- Lưu ý: File này tạo bảng bằng Django migrations.
+-- Nếu cần tạo hoàn toàn bằng SQL thủ công, dùng QL_DKMonHoc_manual.sql.
 -- =========================================================
 
--- 1. TẠO DATABASE
-CREATE DATABASE "QL_DangKyMonHoc";
+-- CẢNH BÁO: Script xóa hoàn toàn database QL_DangKyMonHoc và toàn bộ dữ liệu.
+-- Chỉ chạy khi đã sao lưu và chắc chắn muốn tạo lại database từ đầu.
+--
+-- Chạy bằng psql từ thư mục gốc dự án:
+--   .\venv\Scripts\Activate.ps1
+--   psql -U postgres -f database/QL_DKMonHoc_pgre.sql
+--
+-- Script dùng lệnh riêng của psql (\connect, \!) nên không chạy trực tiếp
+-- toàn bộ file trong pgAdmin Query Tool.
+-- Tài khoản demo dùng mật khẩu Demo@12345; đổi trước khi triển khai thật.
+\set ON_ERROR_STOP on
 
-BEGIN;
+\connect postgres
 
--- =========================================================
--- 2. TẠO CÁC BẢNG (SCHEMA DEFINITION)
--- =========================================================
+-- Ngắt các kết nối đang mở để có thể xóa database.
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'QL_DangKyMonHoc'
+  AND pid <> pg_backend_pid();
 
--- 2.1. Bảng Môn học
-CREATE TABLE registration_monhoc (
-    ma_mon      VARCHAR(15) PRIMARY KEY,
-    ten_mon     VARCHAR(100) NOT NULL,
-    so_tin_chi  INTEGER NOT NULL CHECK (so_tin_chi > 0)
-);
+DROP DATABASE IF EXISTS "QL_DangKyMonHoc";
+CREATE DATABASE "QL_DangKyMonHoc" ENCODING 'UTF8';
+\connect "QL_DangKyMonHoc"
 
--- 2.2. Bảng Môn tiên quyết
-CREATE TABLE registration_montienquyet (
-    id                  SERIAL PRIMARY KEY,
-    mon_hoc_id          VARCHAR(15) NOT NULL REFERENCES registration_monhoc(ma_mon) ON DELETE CASCADE,
-    mon_tien_quyet_id   VARCHAR(15) NOT NULL REFERENCES registration_monhoc(ma_mon) ON DELETE CASCADE,
-    CONSTRAINT unique_mon_tien_quyet UNIQUE (mon_hoc_id, mon_tien_quyet_id)
-);
-
--- 2.3. Bảng Phòng học
-CREATE TABLE registration_phonghoc (
-    ma_phong VARCHAR(20) PRIMARY KEY,
-    suc_chua INTEGER NOT NULL DEFAULT 40 CHECK (suc_chua > 0)
-);
-
--- 2.4. Bảng Lớp học phần
-CREATE TABLE registration_lophocphan (
-    ma_lhp          VARCHAR(25) PRIMARY KEY,
-    giang_vien      VARCHAR(100) NOT NULL,
-    thu             INTEGER NOT NULL CHECK (thu BETWEEN 2 AND 7),
-    ca_hoc          VARCHAR(10) NOT NULL CHECK (ca_hoc IN ('SANG', 'CHIEU')),
-    tiet_bat_dau    INTEGER NOT NULL CHECK (tiet_bat_dau BETWEEN 1 AND 10),
-    so_tiet         INTEGER NOT NULL DEFAULT 3,
-    si_so_toi_da    INTEGER NOT NULL DEFAULT 50 CHECK (si_so_toi_da > 0),
-    si_so_hien_tai  INTEGER NOT NULL DEFAULT 0 CHECK (si_so_hien_tai <= si_so_toi_da),
-    mon_hoc_id      VARCHAR(15) NOT NULL REFERENCES registration_monhoc(ma_mon) ON DELETE CASCADE,
-    phong_hoc_id    VARCHAR(20) REFERENCES registration_phonghoc(ma_phong) ON DELETE SET NULL
-);
-
--- 2.5. Bảng Sinh viên (Liên kết 1-1 với auth_user của Django)
-CREATE TABLE registration_sinhvien (
-    mssv    VARCHAR(15) PRIMARY KEY,
-    ho_ten  VARCHAR(100) NOT NULL,
-    lop     VARCHAR(30) NOT NULL,
-    nganh   VARCHAR(100) NOT NULL,
-    user_id INTEGER UNIQUE NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE
-);
-
--- 2.6. Bảng Đợt đăng ký môn học
-CREATE TABLE registration_dotdangky (
-    id            SERIAL PRIMARY KEY,
-    ten_dot       VARCHAR(100) NOT NULL,
-    ngay_bat_dau  TIMESTAMPTZ NOT NULL,
-    ngay_ket_thuc TIMESTAMPTZ NOT NULL,
-    kich_hoat     BOOLEAN NOT NULL DEFAULT TRUE
-);
-
--- 2.7. Bảng Đăng ký môn học (Giao dịch chính)
-CREATE TABLE registration_dangky (
-    id                SERIAL PRIMARY KEY,
-    thoi_gian_dang_ky TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sinh_vien_id      VARCHAR(15) NOT NULL REFERENCES registration_sinhvien(mssv) ON DELETE CASCADE,
-    lop_hoc_phan_id   VARCHAR(25) NOT NULL REFERENCES registration_lophocphan(ma_lhp) ON DELETE CASCADE,
-    dot_dang_ky_id    INTEGER NOT NULL REFERENCES registration_dotdangky(id) ON DELETE CASCADE,
-    CONSTRAINT unique_sinhvien_lhp_dot UNIQUE (sinh_vien_id, lop_hoc_phan_id, dot_dang_ky_id)
-);
-
--- =========================================================
--- 3. TẠO INDEX TỐI ƯU TRUY VẤN
--- =========================================================
-CREATE INDEX idx_lhp_thu_ca ON registration_lophocphan (thu, ca_hoc);
-CREATE INDEX idx_dangky_sinhvien ON registration_dangky (sinh_vien_id, dot_dang_ky_id);
-
-COMMIT;
+-- Django migrations là nguồn định nghĩa schema chính thức.
+-- Lệnh này tạo cả bảng Django (auth_user, django_migrations, ...) và các
+-- bảng registration_* theo models.py, bao gồm khóa ngoại, kiểu ID và index.
+\! python manage.py migrate --noinput
 
 
 -- =========================================================
--- 4. THÊM DỮ LIỆU BAN ĐẦU (SEED DATA)
+-- THÊM DỮ LIỆU BAN ĐẦU (SEED DATA)
 -- =========================================================
 
 BEGIN;
@@ -116,6 +67,24 @@ ON CONFLICT (ma_mon) DO UPDATE SET
     ten_mon = EXCLUDED.ten_mon,
     so_tin_chi = EXCLUDED.so_tin_chi;
 
+INSERT INTO registration_hocky
+    (ma_hoc_ky, ten_hoc_ky, ngay_bat_dau, ngay_ket_thuc)
+VALUES
+    ('2026-1', 'Học kỳ 1 năm học 2026-2027', '2026-08-24', '2026-12-04')
+ON CONFLICT (ma_hoc_ky) DO NOTHING;
+
+INSERT INTO registration_chuongtrinhdaotao
+    (ma_chuong_trinh, ten_chuong_trinh, nganh, khoa_ap_dung)
+VALUES
+    ('CNPM-2023', 'Công nghệ phần mềm khóa 2023', 'Công nghệ phần mềm', '2023')
+ON CONFLICT (ma_chuong_trinh) DO NOTHING;
+
+INSERT INTO registration_chuongtrinhmonhoc
+    (chuong_trinh_id, mon_hoc_id, bat_buoc)
+SELECT 'CNPM-2023', ma_mon, TRUE
+FROM registration_monhoc
+ON CONFLICT (chuong_trinh_id, mon_hoc_id) DO NOTHING;
+
 -- 4.2. Danh mục Phòng học
 INSERT INTO registration_phonghoc (ma_phong, suc_chua) VALUES
     ('A101', 50), ('A102', 40), ('A201', 60),
@@ -135,9 +104,11 @@ INSERT INTO registration_montienquyet (mon_hoc_id, mon_tien_quyet_id) VALUES
 ON CONFLICT DO NOTHING;
 
 -- 4.4. Đợt đăng ký môn học
-INSERT INTO registration_dotdangky (id, ten_dot, ngay_bat_dau, ngay_ket_thuc, kich_hoat) VALUES
-    (1, 'Đợt 1 - Học kỳ 1 Năm học 2026-2027', '2026-09-01 00:00:00+07', '2026-10-30 23:59:59+07', TRUE)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO registration_dotdangky
+    (ten_dot, hoc_ky_id, ngay_bat_dau, ngay_ket_thuc, kich_hoat)
+VALUES
+    ('Đợt 1 - Học kỳ 1 Năm học 2026-2027', '2026-1',
+     '2026-09-01 00:00:00+07', '2026-10-30 23:59:59+07', TRUE);
 
 -- 4.5. Danh sách Lớp học phần
 INSERT INTO registration_lophocphan 
@@ -198,30 +169,73 @@ VALUES
     ('POL102_01', 'TS. Đặng Văn P',           7, 'CHIEU', 6, 2, 80, 40, 'POL102', 'E201')
 ON CONFLICT (ma_lhp) DO NOTHING;
 
+UPDATE registration_lophocphan
+SET hoc_ky_id = '2026-1',
+    si_so_hien_tai = 0;
+
 -- 4.6. Tạo tài khoản người dùng cho Sinh viên (Bảng auth_user)
 INSERT INTO auth_user (username, password, is_superuser, first_name, last_name, email, is_staff, is_active, date_joined)
 VALUES 
-    ('sv01', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv01@student.edu.vn', FALSE, TRUE, NOW()),
-    ('sv02', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv02@student.edu.vn', FALSE, TRUE, NOW()),
-    ('sv03', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv03@student.edu.vn', FALSE, TRUE, NOW()),
-    ('sv04', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv04@student.edu.vn', FALSE, TRUE, NOW()),
-    ('sv05', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv05@student.edu.vn', FALSE, TRUE, NOW()),
-    ('sv06', 'pbkdf2_sha256$260000$dummyhash123456$', FALSE, '', '', 'sv06@student.edu.vn', FALSE, TRUE, NOW())
+    ('admin_demo', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', TRUE, 'Quản trị', 'Viên', 'admin@example.local', TRUE, TRUE, NOW()),
+    ('sv_duy', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Khánh Duy', 'Nguyễn', '1250080038@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv01', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Thu Hà', 'Trần', 'sv01@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv02', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Hoàng Nam', 'Lê', 'sv02@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv03', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Quốc Bảo', 'Phạm', 'sv03@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv04', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Minh Anh', 'Vũ', 'sv04@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv05', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Hoàng Long', 'Đặng', 'sv05@student.edu.vn', FALSE, TRUE, NOW()),
+    ('sv06', 'pbkdf2_sha256$1500000$4FHrAqqnJk1F9vA9RFIAnz$lgkNIfDf+ezN9A+46Vb5amsLlasi2tyWJ4hfp3+p1Ig=', FALSE, 'Mai Phương', 'Nguyễn', 'sv06@student.edu.vn', FALSE, TRUE, NOW())
 ON CONFLICT (username) DO NOTHING;
 
 -- 4.7. Danh sách Sinh viên
-INSERT INTO registration_sinhvien (mssv, ho_ten, lop, nganh, user_id)
+INSERT INTO registration_sinhvien
+    (mssv, ho_ten, lop, nganh, user_id, chuong_trinh_id)
 VALUES 
-    ('1250080038', 'Nguyễn Khánh Duy', '08_ĐH_CNTT', 'Công nghệ thông tin', (SELECT id FROM auth_user WHERE username IN ('Admin', 'Rita') LIMIT 1)),
-    ('20260001',   'Trần Thị Thu Hà',   '08_ĐH_CNTT', 'Công nghệ thông tin', (SELECT id FROM auth_user WHERE username = 'sv01')),
-    ('20260002',   'Lê Hoàng Nam',      '08_ĐH_CNTT', 'Công nghệ thông tin', (SELECT id FROM auth_user WHERE username = 'sv02')),
-    ('20260003',   'Phạm Quốc Bảo',     '08_ĐH_KTPM', 'Kỹ thuật phần mềm',  (SELECT id FROM auth_user WHERE username = 'sv03')),
-    ('20260004',   'Vũ Minh Anh',       '08_ĐH_KTPM', 'Kỹ thuật phần mềm',  (SELECT id FROM auth_user WHERE username = 'sv04')),
-    ('20260005',   'Đặng Hoàng Long',   '08_ĐH_HTTT', 'Hệ thống thông tin', (SELECT id FROM auth_user WHERE username = 'sv05')),
-    ('20260006',   'Nguyễn Mai Phương', '08_ĐH_HTTT', 'Hệ thống thông tin', (SELECT id FROM auth_user WHERE username = 'sv06'))
+    ('1250080038', 'Nguyễn Khánh Duy', '12_ĐH_CNPM1', 'Công nghệ phần mềm', (SELECT id FROM auth_user WHERE username = 'sv_duy'), 'CNPM-2023'),
+    ('20260001',   'Trần Thị Thu Hà',   '08_ĐH_CNTT', 'Công nghệ thông tin', (SELECT id FROM auth_user WHERE username = 'sv01'), NULL),
+    ('20260002',   'Lê Hoàng Nam',      '08_ĐH_CNTT', 'Công nghệ thông tin', (SELECT id FROM auth_user WHERE username = 'sv02'), NULL),
+    ('20260003',   'Phạm Quốc Bảo',     '08_ĐH_KTPM', 'Kỹ thuật phần mềm',  (SELECT id FROM auth_user WHERE username = 'sv03'), NULL),
+    ('20260004',   'Vũ Minh Anh',        '08_ĐH_KTPM', 'Kỹ thuật phần mềm',  (SELECT id FROM auth_user WHERE username = 'sv04'), NULL),
+    ('20260005',   'Đặng Hoàng Long',   '08_ĐH_HTTT', 'Hệ thống thông tin', (SELECT id FROM auth_user WHERE username = 'sv05'), NULL),
+    ('20260006',   'Nguyễn Mai Phương', '08_ĐH_HTTT', 'Hệ thống thông tin', (SELECT id FROM auth_user WHERE username = 'sv06'), NULL)
 ON CONFLICT (mssv) DO UPDATE SET
     ho_ten = EXCLUDED.ho_ten,
     lop    = EXCLUDED.lop,
-    nganh  = EXCLUDED.nganh;
+    nganh  = EXCLUDED.nganh,
+    chuong_trinh_id = EXCLUDED.chuong_trinh_id;
+
+INSERT INTO registration_monhocdahoanthanh
+    (sinh_vien_id, mon_hoc_id, diem, ngay_hoan_thanh)
+VALUES
+    ('1250080038', 'INT101', 8.50, '2025-12-20'),
+    ('1250080038', 'INT102', 8.00, '2026-05-25'),
+    ('1250080038', 'MTH101', 7.50, '2025-12-20')
+ON CONFLICT (sinh_vien_id, mon_hoc_id) DO NOTHING;
+
+INSERT INTO registration_tieuchiuutien
+    (sinh_vien_id, ca_uu_tien, so_ngay_hoc_toi_da, han_che_tiet_trong)
+SELECT mssv, 'BAT_KY', 4, TRUE
+FROM registration_sinhvien
+ON CONFLICT (sinh_vien_id) DO NOTHING;
+
+INSERT INTO registration_dangky
+    (sinh_vien_id, lop_hoc_phan_id, dot_dang_ky_id)
+SELECT '20260001', 'INT101_01', id
+FROM registration_dotdangky
+WHERE ten_dot = 'Đợt 1 - Học kỳ 1 Năm học 2026-2027'
+ON CONFLICT (sinh_vien_id, lop_hoc_phan_id, dot_dang_ky_id) DO NOTHING;
+
+INSERT INTO registration_dangky
+    (sinh_vien_id, lop_hoc_phan_id, dot_dang_ky_id)
+SELECT '20260002', 'INT102_02', id
+FROM registration_dotdangky
+WHERE ten_dot = 'Đợt 1 - Học kỳ 1 Năm học 2026-2027'
+ON CONFLICT (sinh_vien_id, lop_hoc_phan_id, dot_dang_ky_id) DO NOTHING;
+
+UPDATE registration_lophocphan AS section
+SET si_so_hien_tai = (
+    SELECT COUNT(*)
+    FROM registration_dangky AS enrollment
+    WHERE enrollment.lop_hoc_phan_id = section.ma_lhp
+);
 
 COMMIT;

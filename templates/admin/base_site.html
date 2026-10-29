@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Hệ thống đăng ký môn học{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="admin-brand">
+    <a href="{% url 'admin:index' %}" class="admin-brand__link">
+        <span class="admin-brand__mark" aria-hidden="true">ĐK</span>
+        <span>
+            <strong>HỆ THỐNG ĐĂNG KÝ MÔN HỌC</strong>
+            <small>CỔNG QUẢN TRỊ ĐÀO TẠO</small>
+        </span>
+    </a>
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'registration/admin.css' %}">
+{% endblock %}

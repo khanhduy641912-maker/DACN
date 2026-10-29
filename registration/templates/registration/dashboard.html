@@ -23,6 +23,7 @@
             {% if active_dot %}
                 <p class="fw-bold mb-1 text-success">{{ active_dot.ten_dot }}</p>
                 <small class="text-muted">Hạn: {{ active_dot.ngay_bat_dau|date:"d/m/Y" }} - {{ active_dot.ngay_ket_thuc|date:"d/m/Y" }}</small>
+                {% if active_dot.hoc_ky %}<small class="d-block text-muted">Học kỳ: {{ active_dot.hoc_ky.ten_hoc_ky }}</small>{% endif %}
             {% else %}
                 <p class="text-danger mb-0">Hiện không có đợt đăng ký nào mở!</p>
             {% endif %}
@@ -30,9 +31,50 @@
     </div>
 </div>
 
-<!-- MODULE GỢI Ý THỜI KHÓA BIỂU CSP -->
+{% if completed_courses %}
 <div class="card p-3 mb-4">
-    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-magic me-2"></i>Công cụ Gợi ý Thời khóa biểu Tự động (Không trùng lịch)</h5>
+    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-check2-circle me-2"></i>Môn học đã hoàn thành</h5>
+    <div class="d-flex flex-wrap gap-2">
+        {% for result in completed_courses %}
+            <span class="badge bg-success">
+                {{ result.mon_hoc.ma_mon }} — {{ result.mon_hoc.ten_mon }}
+                {% if result.diem != None %}({{ result.diem }}){% endif %}
+                {% if result.hoc_ky %} · {{ result.hoc_ky.ten_hoc_ky }}{% endif %}
+            </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- TIÊU CHÍ ƯU TIÊN CÁ NHÂN -->
+<div class="card p-3 mb-4">
+    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-sliders me-2"></i>Tiêu chí thời khóa biểu của bạn</h5>
+    <form method="POST" class="row g-3 align-items-end">
+        {% csrf_token %}
+        <div class="col-md-4">
+            <label class="form-label fw-bold" for="{{ preference_form.ca_uu_tien.id_for_label }}">Ca học ưu tiên</label>
+            {{ preference_form.ca_uu_tien }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold" for="{{ preference_form.so_ngay_hoc_toi_da.id_for_label }}">Số ngày học tối đa</label>
+            {{ preference_form.so_ngay_hoc_toi_da }}
+            {% for error in preference_form.so_ngay_hoc_toi_da.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-3">
+            <div class="form-check">
+                {{ preference_form.han_che_tiet_trong }}
+                <label class="form-check-label" for="{{ preference_form.han_che_tiet_trong.id_for_label }}">Hạn chế tiết trống</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" name="action_save_preferences" class="btn btn-outline-primary">Lưu tiêu chí</button>
+        </div>
+    </form>
+</div>
+
+<!-- MODULE GỢI Ý THỜI KHÓA BIỂU -->
+<div class="card p-3 mb-4">
+    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-magic me-2"></i>Gợi ý thời khóa biểu theo chương trình và tiêu chí của bạn</h5>
     <form method="POST">
         {% csrf_token %}
         <label class="form-label fw-bold">Chọn các môn học muốn đăng ký trong kỳ này:</label>
@@ -40,26 +82,83 @@
             {% for mon in all_mon_hoc %}
             <div class="col-md-3">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="selected_mon" value="{{ mon.ma_mon }}" id="mon_{{ mon.ma_mon }}">
+                    <input class="form-check-input" type="checkbox" name="selected_mon" value="{{ mon.ma_mon }}" id="mon_{{ mon.ma_mon }}" {% if mon.ma_mon in selected_mon_ids %}checked{% endif %}>
                     <label class="form-check-label" for="mon_{{ mon.ma_mon }}">
                         {{ mon.ten_mon }} ({{ mon.so_tin_chi }} tín)
+                        {% if mon.ma_mon in completed_course_ids %}<span class="badge bg-success">Đã hoàn thành</span>{% endif %}
                     </label>
+                    {% for condition in mon.mon_chinh.all %}
+                        <small class="d-block text-muted">
+                            {{ condition.get_loai_dieu_kien_display }}:
+                            {{ condition.mon_tien_quyet.ma_mon }} — {{ condition.mon_tien_quyet.ten_mon }}
+                        </small>
+                    {% endfor %}
                 </div>
             </div>
+            {% empty %}
+            <p class="text-muted">Chưa có môn học phần còn chỗ trong đợt/học kỳ này.</p>
             {% endfor %}
         </div>
-        <button type="submit" name="action_suggest" class="btn btn-warning text-dark font-weight-bold"><i class="bi bi-cpu me-1"></i> Tự động Tìm Phương Án TKB Thỏa Mãn</button>
+        <button type="submit" name="action_suggest" class="btn btn-warning text-dark font-weight-bold"><i class="bi bi-cpu me-1"></i> Tìm thời khóa biểu phù hợp</button>
     </form>
 
     {% if suggested_schedules %}
         <div class="mt-4">
-            <h6 class="fw-bold text-success">Các phương án TKB tối ưu tìm được:</h6>
+            <h6 class="fw-bold text-success">Thời khóa biểu đề xuất:</h6>
             {% for option in suggested_schedules %}
-                <div class="alert alert-secondary mb-2 p-2">
-                    <strong>Phương án {{ forloop.counter }}:</strong>
-                    {% for lhp in option %}
-                        <span class="badge bg-primary ms-1">{{ lhp.ma_lhp }} ({{ lhp.mon_hoc.ten_mon }} - Thứ {{ lhp.thu }}, Ca {{ lhp.ca_hoc }})</span>
-                    {% endfor %}
+                <form method="POST" action="{% url 'register_schedule' %}" class="alert alert-secondary mb-2 p-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action_confirm_schedule" value="1">
+                    <h6 class="fw-bold mb-2">Phương án {{ forloop.counter }}</h6>
+                    <strong>Điểm phù hợp: {{ option.score }}</strong>
+                    <ul class="mb-2 mt-2">
+                        {% for lhp in option.courses %}
+                            <li>
+                                <input type="hidden" name="selected_lhp" value="{{ lhp.ma_lhp }}">
+                                {{ lhp.ma_lhp }} — {{ lhp.mon_hoc.ten_mon }}, Thứ {{ lhp.thu }},
+                                ca {{ lhp.get_ca_hoc_display }}, tiết {{ lhp.tiet_bat_dau }}–{{ lhp.tiet_ket_thuc }},
+                                phòng {{ lhp.phong_hoc.ma_phong|default:"Chưa xếp phòng" }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <button type="submit" class="btn btn-success btn-sm">Đăng ký toàn bộ thời khóa biểu</button>
+                </form>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if prerequisite_schedule_groups %}
+        <div class="alert alert-warning mt-4 mb-0" role="status">
+            <h6 class="fw-bold"><i class="bi bi-info-circle me-1"></i>Lịch các môn tiên quyết cần học trước</h6>
+            <p class="mb-3">
+                Những lớp dưới đây chỉ để bạn tham khảo và đăng ký học trước.
+                Chúng không được tính là lịch đăng ký môn đích trong kỳ này.
+            </p>
+            {% for group in prerequisite_schedule_groups %}
+                <div class="mb-3">
+                    <strong>
+                        {{ group.condition.mon_tien_quyet.ma_mon }} —
+                        {{ group.condition.mon_tien_quyet.ten_mon }}
+                    </strong>
+                    <span class="text-muted">
+                        (tiên quyết của {{ group.condition.mon_hoc.ma_mon }} —
+                        {{ group.condition.mon_hoc.ten_mon }})
+                    </span>
+                    {% if group.sections %}
+                        <ul class="mb-0 mt-1">
+                            {% for section in group.sections %}
+                                <li>
+                                    Lớp {{ section.ma_lhp }}: Thứ {{ section.thu }},
+                                    {{ section.get_ca_hoc_display }},
+                                    tiết {{ section.tiet_bat_dau }}–{{ section.tiet_ket_thuc }},
+                                    phòng {{ section.phong_hoc.ma_phong|default:"Chưa xếp phòng" }},
+                                    sĩ số {{ section.si_so_hien_tai }}/{{ section.si_so_toi_da }}.
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mb-0 mt-1">Hiện không có lớp tiên quyết còn chỗ trong học kỳ này.</p>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
@@ -116,12 +215,18 @@
                     </td>
                     <td>
                         {% if lhp.ma_lhp in registered_ids %}
-                            <a href="{% url 'cancel_course' lhp.ma_lhp %}" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Hủy lớp</a>
+                            <form method="POST" action="{% url 'cancel_course' lhp.ma_lhp %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Hủy lớp</button>
+                            </form>
                         {% else %}
                             {% if lhp.si_so_hien_tai >= lhp.si_so_toi_da %}
                                 <button class="btn btn-secondary btn-sm" disabled>Hết chỗ</button>
                             {% else %}
-                                <a href="{% url 'register_course' lhp.ma_lhp %}" class="btn btn-success btn-sm"><i class="bi bi-plus-circle"></i> Đăng ký</a>
+                                <form method="POST" action="{% url 'register_course' lhp.ma_lhp %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-plus-circle"></i> Đăng ký</button>
+                                </form>
                             {% endif %}
                         {% endif %}
                     </td>

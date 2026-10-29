@@ -1,0 +1,109 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <section class="admin-welcome">
+        <div>
+            <span class="admin-eyebrow">TRUNG TÂM ĐIỀU HÀNH</span>
+            <h1>Xin chào, {{ user.get_short_name|default:user.username }}</h1>
+            <p>Quản lý học kỳ, chương trình đào tạo, lớp học phần và hoạt động đăng ký tại một nơi.</p>
+        </div>
+        <a class="admin-primary-action" href="{% url 'admin:registration_sinhvien_changelist' %}">
+            Quản lý sinh viên <span aria-hidden="true">→</span>
+        </a>
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section__heading">
+            <div>
+                <span class="admin-eyebrow">DỮ LIỆU HỆ THỐNG</span>
+                <h2>Các phân hệ quản lý</h2>
+            </div>
+            <span class="admin-section__hint">Chọn một phân hệ để xem, tìm kiếm hoặc cập nhật dữ liệu.</span>
+        </div>
+
+        <div class="admin-app-grid">
+            {% for app in app_list %}
+                {% if app.app_label == "registration" %}
+                    {% for model in app.models %}
+                        <article class="admin-model-card">
+                            <div class="admin-model-card__icon" aria-hidden="true">
+                                {% if model.object_name == "SinhVien" %}SV
+                                {% elif model.object_name == "MonHoc" %}MH
+                                {% elif model.object_name == "LopHocPhan" %}LH
+                                {% elif model.object_name == "DangKy" %}DK
+                                {% elif model.object_name == "HocKy" %}HK
+                                {% else %}QL{% endif %}
+                            </div>
+                            <div class="admin-model-card__body">
+                                <h3>
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}">
+                                            {% if model.object_name == "SinhVien" %}Sinh viên
+                                            {% elif model.object_name == "ChuongTrinhDaoTao" %}Chương trình đào tạo
+                                            {% elif model.object_name == "MonHoc" %}Môn học
+                                            {% elif model.object_name == "MonTienQuyet" %}Điều kiện tiên quyết / song hành
+                                            {% elif model.object_name == "PhongHoc" %}Phòng học
+                                            {% elif model.object_name == "LopHocPhan" %}Lớp học phần
+                                            {% elif model.object_name == "DotDangKy" %}Đợt đăng ký
+                                            {% elif model.object_name == "HocKy" %}Học kỳ
+                                            {% elif model.object_name == "MonHocDaHoanThanh" %}Lịch sử học tập
+                                            {% elif model.object_name == "TieuChiUuTien" %}Tiêu chí thời khóa biểu
+                                            {% elif model.object_name == "DangKy" %}Đăng ký môn học
+                                            {% else %}{{ model.name }}{% endif %}
+                                        </a>
+                                    {% else %}
+                                        {{ model.name }}
+                                    {% endif %}
+                                </h3>
+                                <p>Truy cập nhanh để xem, tìm kiếm hoặc cập nhật dữ liệu.</p>
+                                <div class="admin-model-card__actions">
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}">Mở danh sách <span aria-hidden="true">→</span></a>
+                                    {% endif %}
+                                    {% if model.add_url %}
+                                        <a class="admin-model-card__add" href="{{ model.add_url }}">+ Thêm mới</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    {% for app in app_list %}
+        {% if app.app_label != "registration" %}
+            <section class="admin-section admin-section--secondary">
+                <div class="admin-section__heading">
+                    <div>
+                        <span class="admin-eyebrow">CẤU HÌNH</span>
+                        <h2>{{ app.name }}</h2>
+                    </div>
+                </div>
+                <div class="admin-app-grid">
+                    {% for model in app.models %}
+                        <article class="admin-model-card admin-model-card--compact">
+                            <div class="admin-model-card__body">
+                                <h3>
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                                    {% else %}
+                                        {{ model.name }}
+                                    {% endif %}
+                                </h3>
+                                <div class="admin-model-card__actions">
+                                    {% if model.admin_url %}<a href="{{ model.admin_url }}">Mở danh sách →</a>{% endif %}
+                                    {% if model.add_url %}<a class="admin-model-card__add" href="{{ model.add_url }}">+ Thêm mới</a>{% endif %}
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}

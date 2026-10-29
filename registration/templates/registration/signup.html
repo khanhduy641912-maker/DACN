@@ -31,10 +31,18 @@
                         <input type="text" name="lop" class="form-control" required placeholder="Ví dụ: 08_ĐH_CNTT">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Ngành học <span class="text-danger">*</span></label>
-                        <input type="text" name="nganh" class="form-control" required placeholder="Ví dụ: Công nghệ thông tin">
+                        <label class="form-label fw-bold">Chương trình đào tạo <span class="text-danger">*</span></label>
+                        <select name="chuong_trinh" class="form-select" required {% if not programs %}disabled{% endif %}>
+                            <option value="">-- Chọn chương trình --</option>
+                            {% for program in programs %}
+                                <option value="{{ program.ma_chuong_trinh }}">{{ program.ten_chuong_trinh }} — {{ program.nganh }} (Khóa {{ program.khoa_ap_dung }})</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
+                {% if not programs %}
+                    <div class="alert alert-warning">Chưa có chương trình đào tạo. Vui lòng liên hệ quản trị viên để khai báo chương trình trước khi đăng ký.</div>
+                {% endif %}
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -47,7 +55,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-success w-100 py-2 mt-2 font-weight-bold"><i class="bi bi-person-plus-fill me-1"></i> ĐĂNG KÝ TÀI KHOẢN</button>
+                <button type="submit" class="btn btn-success w-100 py-2 mt-2 font-weight-bold" {% if not programs %}disabled{% endif %}><i class="bi bi-person-plus-fill me-1"></i> ĐĂNG KÝ TÀI KHOẢN</button>
             </form>
 
             <div class="text-center mt-3">
