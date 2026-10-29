@@ -1,0 +1,31 @@
+{% extends 'registration/base.html' %}
+
+{% block title %}Đăng nhập - Hệ thống Đăng ký Môn học{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow p-4">
+            <h4 class="text-center text-primary mb-4 fw-bold">ĐĂNG NHẬP HỆ THỐNG</h4>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Tên đăng nhập / MSSV</label>
+                    <input type="text" name="username" class="form-control" required placeholder="Nhập tên đăng nhập...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Mật khẩu</label>
+                    <input type="password" name="password" class="form-control" required placeholder="Nhập mật khẩu...">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 mt-2 font-weight-bold">ĐĂNG NHẬP</button>
+            </form>
+
+            <!-- Thêm đường dẫn liên kết sang trang Đăng ký tài khoản mới -->
+            <div class="text-center mt-3 pt-2 border-top">
+                <span class="text-muted">Chưa có tài khoản? </span>
+                <a href="{% url 'signup' %}" class="fw-bold text-decoration-none">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

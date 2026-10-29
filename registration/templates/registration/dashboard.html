@@ -1,0 +1,202 @@
+{% extends 'registration/base.html' %}
+
+{% block title %}Trang chủ Sinh viên - Đăng ký Môn học{% endblock %}
+
+{% block content %}
+{% if sinh_vien %}
+<!-- THÔNG TIN SINH VIÊN & ĐỢT ĐĂNG KÝ -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card p-3">
+            <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-badge me-2"></i>Thông tin Sinh viên</h5>
+            <div class="row">
+                <div class="col-md-6"><p class="mb-1"><strong>Họ và tên:</strong> {{ sinh_vien.ho_ten }}</p></div>
+                <div class="col-md-6"><p class="mb-1"><strong>MSSV:</strong> {{ sinh_vien.mssv }}</p></div>
+                <div class="col-md-6"><p class="mb-1"><strong>Lớp:</strong> {{ sinh_vien.lop }}</p></div>
+                <div class="col-md-6"><p class="mb-1"><strong>Ngành:</strong> {{ sinh_vien.nganh }}</p></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 bg-light border-primary">
+            <h5 class="text-primary border-bottom pb-2 mb-2"><i class="bi bi-calendar-event me-2"></i>Đợt đăng ký hiện tại</h5>
+            {% if active_dot %}
+                <p class="fw-bold mb-1 text-success">{{ active_dot.ten_dot }}</p>
+                <small class="text-muted">Hạn: {{ active_dot.ngay_bat_dau|date:"d/m/Y" }} - {{ active_dot.ngay_ket_thuc|date:"d/m/Y" }}</small>
+            {% else %}
+                <p class="text-danger mb-0">Hiện không có đợt đăng ký nào mở!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODULE GỢI Ý THỜI KHÓA BIỂU CSP -->
+<div class="card p-3 mb-4">
+    <h5 class="text-primary border-bottom pb-2 mb-3"><i class="bi bi-magic me-2"></i>Công cụ Gợi ý Thời khóa biểu Tự động (Không trùng lịch)</h5>
+    <form method="POST">
+        {% csrf_token %}
+        <label class="form-label fw-bold">Chọn các môn học muốn đăng ký trong kỳ này:</label>
+        <div class="row mb-3">
+            {% for mon in all_mon_hoc %}
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="selected_mon" value="{{ mon.ma_mon }}" id="mon_{{ mon.ma_mon }}">
+                    <label class="form-check-label" for="mon_{{ mon.ma_mon }}">
+                        {{ mon.ten_mon }} ({{ mon.so_tin_chi }} tín)
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" name="action_suggest" class="btn btn-warning text-dark font-weight-bold"><i class="bi bi-cpu me-1"></i> Tự động Tìm Phương Án TKB Thỏa Mãn</button>
+    </form>
+
+    {% if suggested_schedules %}
+        <div class="mt-4">
+            <h6 class="fw-bold text-success">Các phương án TKB tối ưu tìm được:</h6>
+            {% for option in suggested_schedules %}
+                <div class="alert alert-secondary mb-2 p-2">
+                    <strong>Phương án {{ forloop.counter }}:</strong>
+                    {% for lhp in option %}
+                        <span class="badge bg-primary ms-1">{{ lhp.ma_lhp }} ({{ lhp.mon_hoc.ten_mon }} - Thứ {{ lhp.thu }}, Ca {{ lhp.ca_hoc }})</span>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- DANH SÁCH LỚP HỌC PHẦN MỞ (BỔ SUNG TÌM KIẾM, LỌC & PHÂN TRANG) -->
+<div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h5 class="text-primary mb-0"><i class="bi bi-list-check me-2"></i>Danh sách Lớp học phần Mở</h5>
+        
+        <!-- Form Tìm kiếm & Lọc -->
+        <form method="GET" class="d-flex gap-2">
+            <input type="text" name="search" class="form-control form-control-sm" placeholder="Nhập tên môn, mã môn, GV..." value="{{ search_query }}" autofocus>
+            <select name="ca_hoc" class="form-select form-select-sm" style="width: 130px;">
+                <option value="">-- Tất cả ca --</option>
+                <option value="SANG" {% if ca_filter == 'SANG' %}selected{% endif %}>Ca Sáng</option>
+                <option value="CHIEU" {% if ca_filter == 'CHIEU' %}selected{% endif %}>Ca Chiều</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> Lọc</button>
+            {% if search_query or ca_filter %}
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Xóa lọc</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã LHP</th>
+                    <th>Tên môn học</th>
+                    <th>Giảng viên</th>
+                    <th>Lịch học</th>
+                    <th>Phòng</th>
+                    <th>Sĩ số</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lhp in page_obj %}
+                <tr>
+                    <td><strong>{{ lhp.ma_lhp }}</strong></td>
+                    <td>{{ lhp.mon_hoc.ten_mon }} ({{ lhp.mon_hoc.so_tin_chi }}TC)</td>
+                    <td>{{ lhp.giang_vien }}</td>
+                    <td>Thứ {{ lhp.thu }} (Ca {{ lhp.ca_hoc }}, Tiết {{ lhp.tiet_bat_dau }})</td>
+                    <td><span class="badge bg-info text-dark">{{ lhp.phong_hoc.ma_phong }}</span></td>
+                    <td>
+                        {% if lhp.si_so_hien_tai >= lhp.si_so_toi_da %}
+                            <span class="badge bg-danger">{{ lhp.si_so_hien_tai }}/{{ lhp.si_so_toi_da }} (Đầy)</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ lhp.si_so_hien_tai }}/{{ lhp.si_so_toi_da }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if lhp.ma_lhp in registered_ids %}
+                            <a href="{% url 'cancel_course' lhp.ma_lhp %}" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Hủy lớp</a>
+                        {% else %}
+                            {% if lhp.si_so_hien_tai >= lhp.si_so_toi_da %}
+                                <button class="btn btn-secondary btn-sm" disabled>Hết chỗ</button>
+                            {% else %}
+                                <a href="{% url 'register_course' lhp.ma_lhp %}" class="btn btn-success btn-sm"><i class="bi bi-plus-circle"></i> Đăng ký</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">Không tìm thấy lớp học phần phù hợp.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Thanh Phân trang -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&ca_hoc={{ ca_filter }}">Trước</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}&search={{ search_query }}&ca_hoc={{ ca_filter }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&ca_hoc={{ ca_filter }}">Sau</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- THỜI KHÓA BIỂU ĐÃ ĐĂNG KÝ (BỔ SUNG NÚT XUẤT CSV & IN TKB) -->
+<div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h5 class="text-primary mb-0"><i class="bi bi-calendar3 me-2"></i>Thời khóa biểu đã Đăng ký</h5>
+        {% if registered_lhps %}
+        <div>
+            <a href="{% url 'export_csv' %}" class="btn btn-outline-success btn-sm me-1"><i class="bi bi-file-earmark-excel"></i> Xuất CSV / Excel</a>
+            <button onclick="window.print();" class="btn btn-outline-dark btn-sm"><i class="bi bi-printer"></i> In TKB</button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if registered_lhps %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-primary text-center">
+                    <tr>
+                        <th>Mã LHP</th>
+                        <th>Môn học</th>
+                        <th>Giảng viên</th>
+                        <th>Lịch học</th>
+                        <th>Phòng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lhp in registered_lhps %}
+                    <tr>
+                        <td class="fw-bold">{{ lhp.ma_lhp }}</td>
+                        <td>{{ lhp.mon_hoc.ten_mon }}</td>
+                        <td>{{ lhp.giang_vien }}</td>
+                        <td>Thứ {{ lhp.thu }} - Ca {{ lhp.ca_hoc }} (Tiết {{ lhp.tiet_bat_dau }})</td>
+                        <td>{{ lhp.phong_hoc.ma_phong }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted mb-0">Bạn chưa đăng ký lớp học phần nào trong đợt này.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

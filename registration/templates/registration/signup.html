@@ -1,0 +1,60 @@
+{% extends 'registration/base.html' %}
+
+{% block title %}Đăng ký Tài khoản Sinh viên{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-6">
+        <div class="card shadow p-4">
+            <h4 class="text-center text-primary mb-3 fw-bold">ĐĂNG KÝ TÀI KHOẢN SINH VIÊN</h4>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" required placeholder="Ví dụ: sv2026">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Mã số sinh viên (MSSV) <span class="text-danger">*</span></label>
+                        <input type="text" name="mssv" class="form-control" required placeholder="Ví dụ: 1250080099">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                    <input type="text" name="ho_ten" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Lớp sinh hoạt <span class="text-danger">*</span></label>
+                        <input type="text" name="lop" class="form-control" required placeholder="Ví dụ: 08_ĐH_CNTT">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Ngành học <span class="text-danger">*</span></label>
+                        <input type="text" name="nganh" class="form-control" required placeholder="Ví dụ: Công nghệ thông tin">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required placeholder="Nhập mật khẩu...">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control" required placeholder="Nhập lại mật khẩu...">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-2 mt-2 font-weight-bold"><i class="bi bi-person-plus-fill me-1"></i> ĐĂNG KÝ TÀI KHOẢN</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <span>Đã có tài khoản? </span>
+                <a href="{% url 'login' %}" class="fw-bold text-decoration-none">Đăng nhập ngay</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

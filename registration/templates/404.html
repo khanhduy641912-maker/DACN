@@ -1,0 +1,9 @@
+{% extends 'registration/base.html' %}
+{% block title %}404 - Không tìm thấy trang{% endblock %}
+{% block content %}
+<div class="text-center my-5 py-5">
+    <h1 class="display-1 fw-bold text-danger">404</h1>
+    <h3>Trang bạn tìm kiếm không tồn tại!</h3>
+    <a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">Quay về Trang chủ</a>
+</div>
+{% endblock %}

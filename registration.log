@@ -1,0 +1,13 @@
+2026-10-13 11:20:57,123 - INFO - User 'sv01' đăng nhập thành công.
+2026-10-13 11:21:25,969 - INFO - SUCCESS: SV 20260001 đã đăng ký LHP INT103_02
+2026-10-13 11:21:33,964 - INFO - User 'sv01' đã đăng xuất.
+2026-10-13 11:21:44,832 - INFO - User 'sv02' đăng nhập thành công.
+2026-10-13 11:22:52,753 - INFO - User 'sv02' đã đăng xuất.
+2026-10-13 11:23:01,055 - WARNING - Thất bại đăng nhập với username 'sv01'.
+2026-10-13 11:23:10,004 - INFO - User 'sv01' đăng nhập thành công.
+2026-10-13 11:23:16,719 - INFO - CANCEL: SV 20260001 đã hủy LHP INT103_02
+2026-10-13 11:26:26,872 - INFO - D:\DoAnChuyenNganh\DoAn_DangKyMonHoc\registration\views.py changed, reloading.
+2026-10-13 11:28:43,515 - INFO - D:\DoAnChuyenNganh\DoAn_DangKyMonHoc\registration\views.py changed, reloading.
+2026-10-13 11:29:01,120 - INFO - D:\DoAnChuyenNganh\DoAn_DangKyMonHoc\registration\views.py changed, reloading.
+2026-10-13 11:31:44,335 - INFO - User 'sv01' đã đăng xuất.
+2026-10-13 11:32:09,290 - INFO - User 'Admin' đăng nhập thành công.

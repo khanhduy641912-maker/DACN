@@ -1,0 +1,9 @@
+{% extends 'registration/base.html' %}
+{% block title %}500 - Lỗi Hệ thống{% endblock %}
+{% block content %}
+<div class="text-center my-5 py-5">
+    <h1 class="display-1 fw-bold text-warning">500</h1>
+    <h3>Đã xảy ra lỗi máy chủ! Hệ thống đã ghi nhận log.</h3>
+    <a href="{% url 'dashboard' %}" class="btn btn-primary mt-3">Quay về Trang chủ</a>
+</div>
+{% endblock %}
